@@ -1,0 +1,7 @@
+server:
+    host: "localhost"
+    port: 7001
+    username: "pramati123"
+    password: "pramati123"
+
+metricPrefix: "Custom Metrics|WebLogic|"

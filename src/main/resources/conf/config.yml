@@ -1,0 +1,7 @@
+server:
+    host: ""
+    port:
+    username: ""
+    password: ""
+
+metricPrefix: "Custom Metrics|WebLogic|"

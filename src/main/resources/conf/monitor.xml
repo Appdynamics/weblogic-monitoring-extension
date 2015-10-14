@@ -1,0 +1,23 @@
+<monitor>
+    <name>WebLogicMonitor</name>
+    <type>managed</type>
+    <description>Monitors Oracle WebLogic Application Server</description>
+    <monitor-configuration></monitor-configuration>
+    <enabled>true</enabled>
+    <monitor-run-task>
+        <execution-style>periodic</execution-style>
+        <execution-frequency-in-seconds>60</execution-frequency-in-seconds>
+        <name>WebLogic Monitor Run Task</name>
+        <display-name>WebLogic Monitor Task</display-name>
+        <description>WebLogic Monitor Task</description>
+        <type>java</type>
+        <execution-timeout-in-secs>60</execution-timeout-in-secs>
+        <task-arguments>
+            <argument name="config-file" is-required="false" default-value="monitors/WebLogicMonitor/config.yml"/>
+        </task-arguments>
+        <java-task>
+            <classpath>weblogic-monitoring-extension.jar;lib/wljmxclient.jar;lib/wlclient.jar</classpath>
+            <impl-class>com.appdynamics.extensions.weblogic.WebLogicMonitor</impl-class>
+        </java-task>
+    </monitor-run-task>
+</monitor>
