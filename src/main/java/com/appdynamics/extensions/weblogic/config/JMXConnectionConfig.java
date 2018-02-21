@@ -19,26 +19,23 @@ package com.appdynamics.extensions.weblogic.config;
  * Created by balakrishnav on 12/10/15.
  */
 public class JMXConnectionConfig {
-    private String host;
-    private int port;
+
     private String username;
     private String password;
-    private String protocol;
+    private String jmxServiceUrl;
 
-    public JMXConnectionConfig(String host, int port, String username, String password, String protocol) {
-        this.host = host;
-        this.port = port;
+    public JMXConnectionConfig(String jmxServiceUrl, String username, String password) {
         this.username = username;
         this.password = password;
-        this.protocol = protocol;
+        this.jmxServiceUrl = jmxServiceUrl;
     }
 
-    public String getHost() {
-        return host;
+    public String getJmxServiceUrl() {
+        return jmxServiceUrl;
     }
 
-    public int getPort() {
-        return port;
+    public void setJmxServiceUrl(String jmxServiceUrl) {
+        this.jmxServiceUrl = jmxServiceUrl;
     }
 
     public String getUsername() {
@@ -49,7 +46,4 @@ public class JMXConnectionConfig {
         return password;
     }
 
-    public String getProtocol() {
-        return protocol;
-    }
 }

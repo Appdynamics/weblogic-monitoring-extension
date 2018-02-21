@@ -1,7 +1,11 @@
-server:
-    host: "localhost"
-    port: 7001
-    username: "pramati123"
-    password: "pramati123"
+servers:
+  - host: "localhost"
+    port: "7001"
+    username: "weblogic"
+    password: "admin123"
 
-metricPrefix: "Custom Metrics|WebLogic|"
+
+# number of concurrent tasks
+numberOfThreads: 3
+
+metricPrefix: "Server|Componet:14|Custom Metrics|WebLogic|"

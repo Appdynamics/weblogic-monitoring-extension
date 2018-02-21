@@ -15,179 +15,143 @@
  */
 package com.appdynamics.extensions.weblogic;
 
-import com.appdynamics.extensions.weblogic.config.Configuration;
+import com.appdynamics.extensions.conf.MonitorConfiguration;
 import com.appdynamics.extensions.weblogic.config.JMXConnectionConfig;
 import com.appdynamics.extensions.weblogic.config.JMXConnectionUtil;
-import com.appdynamics.extensions.weblogic.config.Server;
+import com.appdynamics.extensions.weblogic.metrics.MetricPropertiesBuilder;
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.management.AttributeNotFoundException;
 import javax.management.ObjectName;
-import java.util.Arrays;
-import java.util.Collections;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+
+import static com.appdynamics.extensions.weblogic.ConfigConstants.OBJECT_NAME;
 
 /**
  * Created by balakrishnav on 13/10/15.
  */
-public class WebLogicMonitorTask {
-    public static final Logger logger = Logger.getLogger(WebLogicMonitorTask.class);
+public class WebLogicMonitorTask implements Runnable {
+    public static final Logger logger = LoggerFactory.getLogger(WebLogicMonitorTask.class);
     public static final String METRICS_SEPARATOR = "|";
     private JMXConnectionUtil jmxConnector;
 
-    public static long format(Long value) {
+    private MonitorConfiguration configuration;
+    private Map server;
+    private ClassLoader extensionClassLoader;
+
+    public WebLogicMonitorTask(MonitorConfiguration configuration, Map server, ClassLoader extensionClassLoader) {
+        this.configuration = configuration;
+        this.server = server;
+        this.extensionClassLoader = extensionClassLoader;
+    }
+
+    public static Long format(Long value) {
         return value / 1024 / 1024;
     }
 
-    public Map<String, Object> collectMetrics(Configuration config) throws Exception {
+    public Map<String, Object> collectMetrics(Map server) throws Exception {
         Map<String, Object> webLogicMetrics = Maps.newHashMap();
-        Server server = config.getServer();
-        JMXConnectionConfig connectionConfig = new JMXConnectionConfig(server.getHost(), server.getPort(), server.getUsername(), server.getPassword(), "t3");
-        jmxConnector = new JMXConnectionUtil(connectionConfig);
-        jmxConnector.connect();
+        String username = (String) server.get("username");
+        String password = (String) server.get("password");
+        String jmxServiceUrl = (String) server.get("jmxServiceUrl");
+        List<Map> configMBeans = (List<Map>) server.get("mbeans");
+        Map environmentAttributes = populateEnvironmentAttrib(server);
 
-        fetchComponentStats(webLogicMetrics);
-        fetchJdbcStats(webLogicMetrics);
-        fetchJMSQueueStats(webLogicMetrics);
-        fetchJMSRuntimeStats(webLogicMetrics);
-        fetchJTAStats(webLogicMetrics);
-        fetchJVMStats(webLogicMetrics);
+        JMXConnectionConfig connectionConfig = new JMXConnectionConfig(jmxServiceUrl, username, password);
+        jmxConnector = new JMXConnectionUtil(connectionConfig);
+        jmxConnector.connect(environmentAttributes);
+
+        MetricPropertiesBuilder propertyBuilder = new MetricPropertiesBuilder();
+
+        for(Map aConfigMBean : configMBeans){
+            String configObjectName = (String) aConfigMBean.get(OBJECT_NAME);
+            logger.debug("Processing mbean %s from the config file",configObjectName);
+            try {
+                ObjectName objectName = new ObjectName(configObjectName);
+                List<String> strings = (List<String>) aConfigMBean.get("metricPathFromObjectNameProperties");
+                String metricPathForObjectName = buildMetricPathForObjectName((String) server.get("displayName"), objectName, strings);
+                Map<String, String> metricPropsMap = propertyBuilder.build(aConfigMBean);
+                for (Map.Entry<String, String> entry : metricPropsMap.entrySet()) {
+                    String metricName = entry.getKey();
+                    Object metricValue = jmxConnector.getAttribute(objectName, metricName);
+                    webLogicMetrics.put(metricPathForObjectName + metricName, metricValue);
+                }
+            } catch (Exception e) {
+                logger.error(e.getMessage());
+            }
+
+        }
 
         jmxConnector.close();
         return webLogicMetrics;
     }
 
-    private void fetchJVMStats(Map<String, Object> metrics) {
-        String metricPrefix = "JVM" + METRICS_SEPARATOR;
-        long heapSizeMax;
-        long heapSizeCurrent;
-        long heapFreeCurrent;
-        long heapUsedCurrent;
-        try {
-            ObjectName jvmRuntimeMbean = jmxConnector.getMBean("JVMRuntime");
-            heapSizeMax = format((Long) jmxConnector.getAttribute(jvmRuntimeMbean, "HeapSizeMax"));
-            heapSizeCurrent = format((Long) jmxConnector.getAttribute(jvmRuntimeMbean, "HeapSizeCurrent"));
-            heapFreeCurrent = format((Long) jmxConnector.getAttribute(jvmRuntimeMbean, "HeapFreeCurrent"));
-            heapUsedCurrent = heapSizeCurrent - heapFreeCurrent;
-            metrics.put(metricPrefix + "HeapSizeMax (MB)", heapSizeMax);
-            metrics.put(metricPrefix + "HeapSizeCurrent (MB)", heapSizeCurrent);
-            metrics.put(metricPrefix + "HeapFreeCurrent (MB)", heapFreeCurrent);
-            metrics.put(metricPrefix + "UsedMemory (MB)", heapUsedCurrent);
-        } catch (Exception e) {
-            logger.error("Error while fetching JVM stats", e);
+    private String buildMetricPathForObjectName(String displayName, ObjectName objectName, List<String> strings) {
+        StringBuilder sb = new StringBuilder(displayName).append("|");
+        if (strings == null || strings.isEmpty()) {
+            return sb.toString();
         }
-    }
-
-    private void fetchJTAStats(Map<String, Object> metrics) {
-        int activeTransactionsTotalCount;
-        try {
-            ObjectName jtaRuntimeMbean = jmxConnector.getMBean("JTARuntime");
-            activeTransactionsTotalCount = (Integer) jmxConnector.getAttribute(jtaRuntimeMbean, "ActiveTransactionsTotalCount");
-            metrics.put("ActiveTransactionsTotalCount", activeTransactionsTotalCount);
-        } catch (Exception e) {
-            logger.error("Error while fetching Transactions count", e);
-        }
-    }
-
-    private void fetchJMSRuntimeStats(Map<String, Object> metrics) {
-        long connectionsCurrentCount;
-        try {
-            ObjectName jmsRuntimeMbean = jmxConnector.getMBean("JMSRuntime");
-            connectionsCurrentCount = (Long) jmxConnector.getAttribute(jmsRuntimeMbean, "ConnectionsCurrentCount");
-            metrics.put("JmsRuntime" + METRICS_SEPARATOR + "ConnectionsCurrentCount", connectionsCurrentCount);
-        } catch (Exception e) {
-            logger.error("Error while fetching JMS stats", e);
-        }
-    }
-
-    private void fetchJMSQueueStats(Map<String, Object> metrics) {
-        String metricPrefix = "JmsQueue" + METRICS_SEPARATOR;
-        String destinationName;
-        long messagesCurrentCount;
-        long messagesPendingCount;
-        long consumersCurrentCount;
-        try {
-            ObjectName jmsRuntimeMbean = jmxConnector.getMBean("JMSRuntime");
-            ObjectName[] jmsServerRuntimeMbeans = jmxConnector.getMBeans(jmsRuntimeMbean, "JMSServers");
-            for (ObjectName jmsServerRuntime : jmsServerRuntimeMbeans) {
-                ObjectName[] jmsDestinationRuntimeMbeans = jmxConnector.getMBeans(jmsServerRuntime, "Destinations");
-                for (ObjectName jmsDestinationRuntime : jmsDestinationRuntimeMbeans) {
-                    destinationName = (String) jmxConnector.getAttribute(jmsDestinationRuntime, "Name");
-                    messagesCurrentCount = (Long) jmxConnector.getAttribute(jmsDestinationRuntime, "MessagesCurrentCount");
-                    messagesPendingCount = (Long) jmxConnector.getAttribute(jmsDestinationRuntime, "MessagesPendingCount");
-                    consumersCurrentCount = (Long) jmxConnector.getAttribute(jmsDestinationRuntime, "ConsumersCurrentCount");
-                    metrics.put(metricPrefix + destinationName + METRICS_SEPARATOR + "MessagesCurrentCount", messagesCurrentCount);
-                    metrics.put(metricPrefix + destinationName + METRICS_SEPARATOR + "MessagesPendingCount", messagesPendingCount);
-                    metrics.put(metricPrefix + destinationName + METRICS_SEPARATOR + "ConsumersCurrentCount", consumersCurrentCount);
-                }
+        for (String key : strings) {
+            String propertyValue = objectName.getKeyProperty(key);
+            if (!Strings.isNullOrEmpty(propertyValue)) {
+                sb.append(propertyValue).append("|");
+            } else {
+                logger.warn("The property for " + key + " in objectName " + objectName + " from metricPathFromObjectNameProperties doesn't exist");
             }
+        }
+        return sb.toString();
+    }
+
+    private Map populateEnvironmentAttrib(Map server) {
+        Map environmentAttributes = Maps.newHashMap();
+        String jmxPackage = (String) server.get("jmx.remote.protocol.provider.pkgs");
+        if (!Strings.isNullOrEmpty(jmxPackage)) {
+            environmentAttributes.put("jmx.remote.protocol.provider.pkgs", jmxPackage);
+        }
+        Integer timeout = (Integer) server.get("jmx.remote.x.request.waiting.timeout");
+        if (timeout != null) {
+            environmentAttributes.put("jmx.remote.x.request.waiting.timeout", timeout.longValue());
+        }
+        return environmentAttributes;
+    }
+
+    public void run() {
+
+        Thread.currentThread().setContextClassLoader(extensionClassLoader);
+
+        long startTime = System.currentTimeMillis();
+        try {
+            Map<String, Object> metrics = collectMetrics(server);
+            printMetrics(metrics);
         } catch (Exception e) {
-            logger.error("Error while fetching JMSQueue stats", e);
+            logger.error("WebLogic monitor has errors for " + server.get("host"), e);
+            //System.out.println("WebLogic monitor has errors for " + server.get("host")+ e);
+        } finally {
+            long endTime = System.currentTimeMillis() - startTime;
+            logger.info("WebLogic monitor thread for server " + server.get("displayName") + " ended. Time taken is " + endTime);
+            //System.out.println("WebLogic monitor thread for server " + server.get("displayName") + " ended. Time taken is " + endTime);
         }
     }
 
-    private void fetchJdbcStats(Map<String, Object> metrics) {
-        int capacity;
-        int activeCount;
-        int waitingCount;
-        String metricPrefix = "JDBC" + METRICS_SEPARATOR;
-        try {
-            ObjectName jdbcServiceRuntimeMbean = jmxConnector.getMBean("JDBCServiceRuntime");
-            ObjectName[] jdbcDataSourceRuntimeMbeans = jmxConnector.getMBeans(jdbcServiceRuntimeMbean, "JDBCDataSourceRuntimeMBeans");
-            for (ObjectName datasourceRuntime : jdbcDataSourceRuntimeMbeans) {
-                String datasourceName = (String) jmxConnector.getAttribute(datasourceRuntime, "Name");
-
-                capacity = (Integer) jmxConnector.getAttribute(datasourceRuntime, "CurrCapacity");
-                activeCount = (Integer) jmxConnector.getAttribute(datasourceRuntime, "ActiveConnectionsCurrentCount");
-                waitingCount = (Integer) jmxConnector.getAttribute(datasourceRuntime, "WaitingForConnectionCurrentCount");
-                metrics.put(metricPrefix + datasourceName + METRICS_SEPARATOR + "CurrCapacity", capacity);
-                metrics.put(metricPrefix + datasourceName + METRICS_SEPARATOR + "ActiveConnectionsCurrentCount", activeCount);
-                metrics.put(metricPrefix + datasourceName + METRICS_SEPARATOR + "WaitingForConnectionCurrentCount", waitingCount);
-            }
-        } catch (Exception e) {
-            logger.error("Error while fetching JDBC stats", e);
+    private void printMetrics(Map<String, Object> metrics) {
+        String metricPath = configuration.getMetricPrefix();
+        for (Map.Entry<String, Object> entry : metrics.entrySet()) {
+            printAverageAverageIndividual(metricPath + "|" + entry.getKey(), entry.getValue());
         }
     }
 
-    private void fetchComponentStats(Map<String, Object> metrics) {
-        List<String> EXCLUSIONS = Collections.unmodifiableList(Arrays.asList(
-                "_async",
-                "bea_wls_deployment_internal",
-                "bea_wls_cluster_internal",
-                "bea_wls_diagnostics",
-                "bea_wls_internal",
-                "console",
-                "consolehelp",
-                "uddi",
-                "uddiexplorer"));
-        try {
-            ObjectName[] applicationRuntimeMbeans = jmxConnector.getMBeans("ApplicationRuntimes");
-            int openSessions;
-            for (ObjectName applicationRuntime : applicationRuntimeMbeans) {
-                ObjectName[] componentRuntimeMbeans = jmxConnector.getMBeans(applicationRuntime, "ComponentRuntimes");
-                for (ObjectName componentRuntime : componentRuntimeMbeans) {
-                    String contextRoot;
-                    try {
-                        contextRoot = (String) jmxConnector.getAttribute(componentRuntime, "ContextRoot");
-                        // The context root may be an empty string or a single character
-                        if (contextRoot.length() > 1) {
-                            contextRoot = contextRoot.substring(1);
-                        }
-                    } catch (AttributeNotFoundException ignored) {
-                        // Our component is not an instance of WebAppComponentRuntimeMBean
-                        continue;
-                    }
-                    if (EXCLUSIONS.contains(contextRoot)) {
-                        continue;
-                    }
-                    openSessions = (Integer) jmxConnector.getAttribute(componentRuntime, "OpenSessionsCurrentCount");
-                    metrics.put("Apps" + METRICS_SEPARATOR + contextRoot + METRICS_SEPARATOR + "OpenSessionsCurrentCount", openSessions);
-                }
+    private void printAverageAverageIndividual(String metricName, Object metricValue) {
+        if (metricValue != null) {
+            if (metricValue instanceof Integer) {
+                configuration.getMetricWriter().printMetric(metricName, new BigDecimal((Integer) metricValue), "AVG.AVG.COL");
+            } else if (metricValue instanceof Long) {
+                configuration.getMetricWriter().printMetric(metricName, new BigDecimal((Long) metricValue), "AVG.AVG.COL");
             }
-        } catch (Exception e) {
-            logger.error("Error while fetching Application stats", e);
+            System.out.println(metricName + " = " + metricValue);
         }
     }
 }
