@@ -1,0 +1,10 @@
+
+mbeans:
+  - objectName: "java.lang:type=Memory"
+    mbeanKeys: ["type"]
+    metrics:
+      include:
+        - name: "ObjectPendingFinalizationCount"
+          alias: "ObjectPendingFinalizationCount"
+        - name: "HeapMemoryUsage.used"
+          alias: "Heap Memory Usage|Heap Memory Used"

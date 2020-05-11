@@ -1,3 +1,11 @@
+/*
+ *   Copyright 2019 . AppDynamics LLC and its affiliates.
+ *   All Rights Reserved.
+ *   This is unpublished proprietary source code of AppDynamics LLC and its affiliates.
+ *   The copyright notice above does not evidence any actual or intended publication of such source code.
+ *
+ */
+
 package com.appdynamics.extensions.weblogic;
 
 import com.google.common.collect.Maps;
@@ -7,17 +15,15 @@ import org.junit.Test;
 import java.util.Map;
 
 /**
- * Created by balakrishnav on 12/10/15.
+ * Created by bhuvnesh.kumar on 2/23/18.
  */
 public class WebLogicMonitorTest {
-    public static final String CONFIG_ARG = "config-file";
-
     @Test
-    public void testWebLogicMonitor() throws TaskExecutionException {
-        Map<String, String> taskArgs = Maps.newHashMap();
-        taskArgs.put(CONFIG_ARG, "src/test/resources/conf/config.yml");
-
+    public void test() throws TaskExecutionException {
         WebLogicMonitor monitor = new WebLogicMonitor();
+        Map<String, String> taskArgs = Maps.newHashMap();
+        taskArgs.put("config-file", "src/test/resources/conf/config.yml");
         monitor.execute(taskArgs, null);
     }
+
 }

@@ -1,7 +1,76 @@
-server:
-    host: "localhost"
-    port: 7001
-    username: "pramati123"
-    password: "pramati123"
+### ANY CHANGES TO THIS FILE DOES NOT REQUIRE A RESTART ###
 
-metricPrefix: "Custom Metrics|WebLogic|"
+#This will create this metric in all the tiers, under this path
+#metricPrefix: Custom Metrics|WebLogic Monitor
+
+#This will create it in specific Tier. Replace <TIER_NAME>
+metricPrefix: "Server|Component:awsReportingTier|Custom Metrics|WebLogic Monitor"
+
+### ANY CHANGES TO THIS FILE DOES NOT REQUIRE A RESTART ###
+
+# List of WebLogic Servers
+servers:
+  -   displayName: "localhost"
+#     displayName is a required field. This will be your server name that will show up in metric path.
+      serviceUrl: "service:jmx:t3://localhost:7001/jndi/weblogic.management.mbeanservers.runtime"
+      username: ""
+      password: ""
+#      encryptedPassword: ""
+      jmx.remote.protocol.provider.pkgs: "weblogic.management.remote"
+      jmx.remote.x.request.waiting.timeout: 10000
+# number of concurrent tasks.
+# This doesn't need to be changed unless many servers are configured
+numberOfThreads: 10
+
+#timeout for the thread
+threadTimeout: 30
+
+mbeans:
+  - objectName: "com.bea:ServerRuntime=AdminServer,Name=AdminServer,Type=JVMRuntime"
+    mbeanKeys: ["Name", "Type"]
+    metrics:
+      include:
+        - name: "HeapSizeMax"
+          alias: "HeapSizeMax"
+        - name: "HeapSizeCurrent"
+          alias: "HeapSizeCurrent"
+        - name: "HeapFreeCurrent"
+          alias: "HeapFreeCurrent"
+
+  - objectName: "com.bea:ServerRuntime=AdminServer,Name=AdminServer,Type=JTARecoveryRuntime,JTARuntime=JTARuntime"
+    mbeanKeys: ["Name", "Type", "JTARuntime"]
+    metrics:
+      include:
+        - name: "InitialRecoveredTransactionTotalCount"
+          alias: " InitialRecoveredTransactionTotalCount"
+
+metricPathReplacements:
+   - replace: "%"
+     replaceWith: ""
+   - replace: ","
+     replaceWith: "-"
+   - replace: "."
+     replaceWith: "."
+
+separatorForMetricLists: ":"
+
+
+# Default information needs to be updated
+controllerInfo:
+  controllerHost: "controller"
+  controllerPort: 8080
+  account: "customer1"
+  username: "user1"
+  password: "welcome"
+  encryptedPassword: ""
+  controllerSslEnabled: false
+  enableOrchestration: false
+  uniqueHostId: ""
+  accountAccessKey: ""
+  machinePath: ""
+  simEnabled: true
+  applicationName: ""
+  tierName: ""
+  nodeName: ""
+
+encryptionKey: ""
