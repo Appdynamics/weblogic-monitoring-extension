@@ -214,10 +214,6 @@ In the dialog box, enter the URL with host, port(`service:jmx:t3://<host>:<port>
 Please visit [Encryption Guidelines] to get detailed instructions on password encryption. The steps in this document will guide you through the whole process.
 If you want to use password encryption, please send arguments as connectionProperties. You will have to fill in the encrypted Password and Encryption Key fields in the config but you will also have to give an empty "" value to the password field and the encrypted password will be automatically picked up.
 
-## Extensions Workbench ##
-Workbench is an inbuilt feature provided with each extension in order to assist you to fine tune the extension setup before you actually
- deploy it on the controller. Please review the following document on [How to use the Extensions WorkBench ]
-
 ## Version 
 |Product | Version | 
 | ----- | ----- | 
