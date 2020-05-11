@@ -1,7 +1,92 @@
-server:
-    host: ""
-    port:
-    username: ""
-    password: ""
+### ANY CHANGES TO THIS FILE DOES NOT REQUIRE A RESTART ###
+#This will create this metric in all the tiers, under this path
+#metricPrefix: Custom Metrics|WebLogic Monitor
 
-metricPrefix: "Custom Metrics|WebLogic|"
+#This will create it in specific Tier. Replace <TIER_NAME>
+metricPrefix: "Server|Component:<TIER_NAME or ID>|Custom Metrics|WebLogic Monitor"
+
+
+# List of WebLogic Servers
+servers:
+  -   displayName: "Local WebLogic"
+#     displayName is a required field. This will be your server name that will show up in metric path.
+      serviceUrl: "service:jmx:t3://localhost:7001/jndi/weblogic.management.mbeanservers.runtime"
+      username: "weblogic"
+      password: "Admin123"
+
+#     You can either use the normal password or encryptedPassword by encrypting the password with encryptionKey.
+#     Do not provide both, only provide one and comment out the other.
+#      encryptedPassword: ""
+      jmx.remote.protocol.provider.pkgs: "weblogic.management.remote"
+      jmx.remote.x.request.waiting.timeout: 10000
+
+# The encryptionKey is global and the same key is used for all the passwords listed in the extension
+#encryptionKey: ""
+
+# number of concurrent tasks.
+# Each server would require its own thread to process. Please provide adequate threads accordingly.
+numberOfThreads: 5
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#                                      List of metrics
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#Glossary of terms(These terms are used as properties for each metric):
+#   alias
+#   aggregationType
+#   timeRollUpType
+#   clusterRollUpType
+#   multiplier -->not for derived metrics
+#   convert --> not for derived metrics
+#   delta --> not for derived metrics
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+mbeans:
+  - objectName: "com.bea:ServerRuntime=AdminServer,Name=AdminServer,Type=JVMRuntime"
+    mbeanKeys: ["Name", "Type"]
+    metrics:
+      include:
+        - name: "HeapSizeMax"
+          alias: "HeapSizeMax"
+        - name: "HeapSizeCurrent"
+          alias: "HeapSizeCurrent"
+        - name: "HeapFreeCurrent"
+          alias: "HeapFreeCurrent"
+
+  - objectName: "com.bea:ServerRuntime=AdminServer,Name=AdminServer,Type=JTARecoveryRuntime,JTARuntime=JTARuntime"
+    mbeanKeys: ["Name", "Type", "JTARuntime"]
+    metrics:
+      include:
+        - name: "InitialRecoveredTransactionTotalCount"
+          alias: " InitialRecoveredTransactionTotalCount"
+
+
+metricPathReplacements:
+   - replace: "%"
+     replaceWith: ""
+   - replace: ","
+     replaceWith: "-"
+   - replace: "."
+     replaceWith: "-"
+   - replace: "ms"
+     replaceWith: ""
+
+separatorForMetricLists: ":"
+
+
+# Default information needs to be updated
+controllerInfo:
+  controllerHost: "controller"
+  controllerPort: 8080
+  account: "customer1"
+  username: "user1"
+  password: "welcome"
+  encryptedPassword: ""
+  controllerSslEnabled: false
+  enableOrchestration: false
+  uniqueHostId: ""
+  accountAccessKey: ""
+  machinePath: ""
+  simEnabled: true
+  applicationName: ""
+  tierName: ""
+  nodeName: ""

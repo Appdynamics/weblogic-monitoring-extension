@@ -1,0 +1,9 @@
+mbeans:
+  - objectName: "java.lang:type=Memory"
+    mbeanKeys: ["type"]
+    metrics:
+      include:
+        - name: "HeapMemoryUsage.max"
+          alias: "Heap Memory Usage|Max Heap Memory"
+        - name: "HeapMemoryUsage.used"
+          alias: "Heap Memory Usage|Used Heap Memory"
