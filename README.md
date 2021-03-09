@@ -217,9 +217,9 @@ If you want to use password encryption, please send arguments as connectionPrope
 ## Version 
 |Product | Version | 
 | ----- | ----- | 
-| Extension Version|  3.0 | 
+| Extension Version|  3.1 | 
 | Controller Compatability | 4.5+ |
-| Last Updated | May 11 , 2020 | 
+| Last Updated | Feb 22 , 2021 | 
 
 **List of Changes can be found in the [Changelog.md]**
 
