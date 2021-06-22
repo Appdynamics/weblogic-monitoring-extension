@@ -187,12 +187,14 @@ To do so, list the metrics you would like to retrieve from the map in the follow
 ## metricPathReplacements
 Please visit [this](https://community.appdynamics.com/t5/Knowledge-Base/Metric-Path-CharSequence-Replacements-in-Extensions/ta-p/35412) page to get detailed instructions on configuring Metric Path Character sequence replacements in Extensions.
 
-    
-## Contributing
-Always feel free to fork and contribute any changes directly here on [GitHub].
+## Credentials Encryption ##
 
-## Community
-Find out more in the [AppDynamics Exchange] community.
+Please visit [Encryption Guidelines] to get detailed instructions on password encryption. The steps in this document will guide you through the whole process.
+If you want to use password encryption, please send arguments as connectionProperties. You will have to fill in the encrypted Password and Encryption Key fields in the config but you will also have to give an empty "" value to the password field and the encrypted password will be automatically picked up.
+
+## Extensions Workbench ##
+
+Workbench is an inbuilt feature provided with each extension in order to assist you to fine tune the extension setup before you actually deploy it on the controller. Please review the following document on [How to use the Extensions WorkBench](https://community.appdynamics.com/t5/Knowledge-Base/How-do-I-use-the-Extensions-WorkBench/ta-p/30130).
 
 ## Troubleshooting ##
 
@@ -209,16 +211,34 @@ In the dialog box, enter the URL with host, port(`service:jmx:t3://<host>:<port>
 2. Please follow the steps listed in this [troubleshooting-document] in order to troubleshoot your issue. These are a set of common issues that customers might have faced during the installation of the extension. If these don't solve your issue, please follow the last step on the [troubleshooting-document] to contact the support team.
 3. Please verify if you have copied WebLogic jars to `monitorsLibs` directory, if not the error `java.net.MalformedURLException: Unsupported protocol: t3` would be logged in machine-agent.log
 
-## Credentials Encryption ##
 
-Please visit [Encryption Guidelines] to get detailed instructions on password encryption. The steps in this document will guide you through the whole process.
-If you want to use password encryption, please send arguments as connectionProperties. You will have to fill in the encrypted Password and Encryption Key fields in the config but you will also have to give an empty "" value to the password field and the encrypted password will be automatically picked up.
+## Support Tickets ##
+
+If after going through the [Troubleshooting Document](https://community.appdynamics.com/t5/Knowledge-Base/How-do-I-troubleshoot-missing-custom-metrics-or-extensions/ta-p/28695) you have not been able to get your extension working, please file a ticket with the following information:
+
+1. Stop the running machine agent.
+2. Delete all existing logs under <MachineAgent>/logs.
+3. Please enable debug logging by editing the file <MachineAgent>/conf/logging/log4j.xml. Change the level value of the following <logger> elements to debug.
+    ```
+    <logger name="com.singularity">
+    <logger name="com.appdynamics">
+   ```
+4. Start the machine agent and please let it run for 10 mins. Then zip and upload all the logs in the directory <MachineAgent>/logs/*.
+   Attach the zipped <MachineAgent>/conf/* directory.
+5. Attach the zipped <MachineAgent>/monitors/ExtensionFolderYouAreHavingIssuesWith directory.
+
+For any support related questions, you can also contact help@appdynamics.com.
+
+## Contributing
+Always feel free to fork and contribute any changes directly here on [GitHub].
 
 ## Version 
 |Product | Version | 
 | ----- | ----- | 
 | Extension Version|  3.1 | 
 | Controller Compatability | 4.5+ |
+| Agent Compatability | 4.5.13+ |
+|Product Tested on         |14.1.1.0  |
 | Last Updated | Feb 22 , 2021 | 
 
 **List of Changes can be found in the [Changelog.md]**
